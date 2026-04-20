@@ -1,16 +1,17 @@
 {
-  "name": "Controle Diário Sougey",
+  "name": "Controle Diário",
   "short_name": "Controle",
-  "description": "Sistema de escoamento e logística de funcionários",
-  "start_url": "./index.html",
+  "description": "Aplicativo de Controle Diário para Motoristas",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#050e1d",
   "theme_color": "#00d2ff",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/1554/1554894.png",
+      "src": "app_icon_512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

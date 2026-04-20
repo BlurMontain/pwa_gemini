@@ -7,13 +7,14 @@
     <title>Controle Diário</title>
     <!-- Adicionando fonte Inter para um visual moderno -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-
+    
+    <!-- PWA Meta Tags -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#00d2ff">
-
-
-
-
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Controle">
+    <link rel="apple-touch-icon" href="app_icon_512.png">
+    <meta name="theme-color" content="#050e1d">
 
     <style>
         /* 
@@ -62,17 +63,15 @@
         }
 
         /* Container principal simulando a tela de um iPhone 14 Pro Max */
-        #app-container {    
-            width: 430px;
-            height: 932px;
+        #app-container {
+            width: 100%;
+            max-width: 430px;
+            /* Largura base do iPhone Pro Max */
             background-color: var(--bg-body);
             display: flex;
             flex-direction: column;
-            padding: 20px;
-            border-radius: 40px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-             /* Sombra para dar profundidade */
-          
+            padding: 15px;
+            position: relative;
         }
 
         /* 
@@ -260,22 +259,7 @@
            TELA DE LOGIN SOBREPOSTA
         */
         #login-overlay {
-            display: flex;
-            justify-content: center;
-            /* Centraliza horizontalmente */
-            align-items: center;
-            /* Centraliza verticalmente */
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 9999;
-            background: #050e1d;
-        }
-
-
-        /*    position: absolute;
+            position: absolute;
             top: 0;
             left: 0;
             right: 0;
@@ -287,8 +271,8 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
-            border-radius: inherit; */
-        
+            border-radius: inherit;
+        }
 
         .login-box {
             background-color: var(--bg-panel);
@@ -298,6 +282,7 @@
             max-width: 320px;
             text-align: center;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            /* Removido display default para evitar piscada */
         }
 
         .login-box h2 {
@@ -337,8 +322,8 @@
     <!-- CONTAINER PRINCIPAL DO APP -->
     <div id="app-container">
 
-        <!-- Tela de Login (Ocultar com a classe "hidden" quando logado) -->
-        <div id="login-overlay">
+        <!-- Tela de Login (Inicia oculta para evitar piscada) -->
+        <div id="login-overlay" class="hidden">
             <div class="login-box">
                 <h2>Login</h2>
                 <input type="email" id="email" class="login-input" placeholder="Email" />
@@ -363,8 +348,7 @@
         <!-- Total Inicial -->
         <div class="total-container">
             <span>Total Inicial:</span>
-            <input type="number" id="total-inicial" class="total-input" value="44"
-                onblur="salvarNoBanco(true, null, true)">
+            <input type="number" id="total-inicial" class="total-input" value="44" onblur="salvarNoBanco(true, null, true)">
         </div>
 
         <!-- Tabela -->
@@ -473,11 +457,20 @@
 
         // --- PASSO 9: LÓGICA DE NEGÓCIO ---
 
-        // Pega YYYY-MM-DD forçando ABSOLUTAMENTE o fuso horário do Japão (Tokyo) para todos os celulares
+        // Pega YYYY-MM-DD para a data
         function getLocalYYYYMMDD() {
-            const formatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 'Asia/Tokyo' });
-            const partes = formatter.format(new Date()).split('/'); // Retorna ["DD", "MM", "YYYY"]
-            return `${partes[2]}-${partes[1]}-${partes[0]}`; // Monta e retorna "YYYY-MM-DD"
+            const now = new Date();
+            // Usando fuso local do navegador para evitar confusão de data
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const d = String(now.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        // Pega HH:MM:SS para a coluna 'time'
+        function getLocalTime() {
+            const now = new Date();
+            return now.toTimeString().split(' ')[0]; // Retorna "14:30:00"
         }
 
         // 9.1: Motorista Local (LocalStorage)
@@ -534,19 +527,15 @@
             }
         }
 
+        // 10.2 Verificar Sessão Ativa
         async function checkSession() {
             const { data: { session } } = await supabaseClient.auth.getSession();
-
             if (session) {
                 loggedInUserId = session.user.id;
                 document.getElementById('login-overlay').classList.add('hidden');
-                // Adiciona um log para você rastrear no F12
-                console.log("Usuário autenticado:", session.user.email);
                 recarregarDados();
             } else {
-                loggedInUserId = null; // Limpa o ID por segurança
                 document.getElementById('login-overlay').classList.remove('hidden');
-                console.log("Nenhuma sessão. Tela de login ativa.");
             }
         }
 
@@ -569,23 +558,21 @@
                     .select('*')
                     .eq('data', hoje)
                     .eq('turno', currentTurno)
-                    .single();
+                    .limit(1);
 
-                if (error && error.code !== 'PGRST116') {
+                if (error) {
+                    console.error("Erro retornado pelo Supabase:", error);
                     throw error;
                 }
 
-                if (data) {
-                    currentRecordId = data.id;
-                    document.getElementById('total-inicial').value = data.total_inicial;
+                const record = data && data.length > 0 ? data[0] : null;
 
-                    // Atualiza a tela suavemente se ja existir ou forca re-render
-                    if (document.getElementById('table-body').innerHTML === '') {
-                        renderTable(data.linhas);
-                    } else {
-                        atualizarTabelaUI(data.linhas);
-                    }
-                    // alert("Dados do turno " + currentTurno + " recarregados!"); // Silenciado para n incomodar.
+                if (record) {
+                    currentRecordId = record.id;
+                    document.getElementById('total-inicial').value = record.total_inicial;
+                    
+                    // Sempre renderiza ou atualiza se houver record
+                    renderTable(record.linhas);
                 } else {
                     currentRecordId = null;
                     document.getElementById('total-inicial').value = '';
@@ -593,7 +580,11 @@
                 }
 
             } catch (error) {
-                console.error("Erro ao puxar dados: ", error);
+                console.error("Erro detectado na função recarregarDados: ", error);
+                // Se houver erro 406, alertar o usuário sobre possíveis problemas de permissão ou estrutura
+                if (error.code === 'PGRST106' || error.status === 406) {
+                    alert("Erro 406: Verifique se as permissões (RLS) da tabela 'registros_diarios' estão configuradas corretamente no Supabase.");
+                }
             }
         }
 
@@ -604,8 +595,9 @@
 
             if (currentRecordId) {
                 // MODO UPDATE CONCORRENTE: Puxar do banco instantes antes de atualizar!
-                const { data: db } = await supabaseClient.from('registros_diarios').select('*').eq('id', currentRecordId).single();
-
+                const { data: dbData } = await supabaseClient.from('registros_diarios').select('*').eq('id', currentRecordId).limit(1);
+                const db = dbData && dbData.length > 0 ? dbData[0] : null;
+                
                 let payload = {};
                 let atualizou = false;
 
@@ -613,13 +605,13 @@
                     let linhasDoBanco = db.linhas;
                     const saidaStr = document.getElementById(`saida-${indexModificado}`).value;
                     const driverStr = document.getElementById(`driver-${indexModificado}`).innerText;
-
+                    
                     linhasDoBanco[indexModificado].saida = saidaStr !== "" ? parseFloat(saidaStr) : null;
                     linhasDoBanco[indexModificado].driver = driverStr;
                     payload.linhas = linhasDoBanco;
                     atualizou = true;
                 }
-
+                
                 if (totalModificado) {
                     payload.total_inicial = totalInicialTela;
                     atualizou = true;
@@ -631,7 +623,7 @@
                     for (let i = 0; i < horariosBase.length; i++) {
                         const s = document.getElementById(`saida-${i}`).value;
                         const d = document.getElementById(`driver-${i}`).innerText;
-
+                        
                         if (!linhasDoBanco[i]) linhasDoBanco[i] = { horario: horariosBase[i], resto: null };
                         linhasDoBanco[i].saida = s !== "" ? parseFloat(s) : linhasDoBanco[i].saida;
                         linhasDoBanco[i].driver = d !== "" ? d : linhasDoBanco[i].driver;
@@ -641,11 +633,11 @@
                 }
 
                 const { data, error } = await supabaseClient.from('registros_diarios').update(payload).eq('id', currentRecordId).select();
-                if (error) { if (!silencioso) alert("Erro! " + error.message); return; }
+                if (error) { if(!silencioso) alert("Erro! " + error.message); return; }
                 if (!silencioso) alert("Dados Atualizados no Banco!");
-
+                
                 // Estampa de volta os Restos calculados pela Função do Supabase!
-                if (data) atualizarTabelaUI(data[0].linhas);
+                if (data && data.length > 0) atualizarTabelaUI(data[0].linhas);
 
             } else {
                 // INSERT MODO (Criando o dia)
@@ -663,17 +655,18 @@
 
                 const payload = {
                     data: hoje,
+                    time: getLocalTime(),
                     turno: currentTurno,
                     total_inicial: totalInicialTela,
                     user_id: loggedInUserId,
-                    linhas: linhas
+                    linhas: linhas 
                 };
 
                 const { data, error } = await supabaseClient.from('registros_diarios').insert([payload]).select();
-                if (error) { if (!silencioso) alert("Erro! " + error.message); return; }
-
-                if (data && data.length > 0) {
-                    currentRecordId = data[0].id;
+                if (error) { if(!silencioso) alert("Erro! " + error.message); return; }
+                
+                if(data && data.length > 0) {
+                    currentRecordId = data[0].id; 
                     atualizarTabelaUI(data[0].linhas);
                 }
                 if (!silencioso) alert("Novo Dia Iniciado!");
@@ -682,35 +675,30 @@
 
         // 10.5 Função silenciosa para não piscar a interface perdendo o Foco da digitação!
         function atualizarTabelaUI(matrizBD) {
-            for (let i = 0; i < matrizBD.length; i++) {
+            for(let i = 0; i < matrizBD.length; i++) {
                 const elSaida = document.getElementById(`saida-${i}`);
                 const elResto = document.getElementById(`resto-${i}`);
                 const elDriver = document.getElementById(`driver-${i}`);
-
+                
                 if (document.activeElement !== elSaida) {
-                    elSaida.value = matrizBD[i].saida !== null ? matrizBD[i].saida : '';
+                     elSaida.value = matrizBD[i].saida !== null ? matrizBD[i].saida : '';
                 }
-
+                
                 elResto.innerText = matrizBD[i].resto !== null ? matrizBD[i].resto : '';
                 elDriver.innerText = matrizBD[i].driver || '';
             }
         }
 
+        // Iniciar App IMEDIATAMENTE (mais rápido que window.onload)
+        renderTable();
+        checkSession();
 
+        // Registro do Service Worker (PWA)
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js')
-                .then(() => console.log('PWA: Service Worker Ativo'))
-                .catch(err => console.log('PWA: Erro no registro', err));
+                .then(reg => console.log('Service Worker registrado!', reg))
+                .catch(err => console.error('Erro ao registrar Service Worker', err));
         }
-
-
-
-        // Iniciar App (Verificando Sessão)
-        window.onload = () => {
-            // Checa a sessão assim que abrir a página
-            checkSession();
-        };
-
     </script>
 </body>
 
