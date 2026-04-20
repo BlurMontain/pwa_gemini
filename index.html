@@ -130,6 +130,21 @@
             color: var(--text-muted);
         }
 
+        /* Botão de instalação PWA */
+        #install-button {
+            background-color: var(--primary-cyan);
+            color: #000;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            cursor: pointer;
+            width: 100%;
+            display: none; /* Escondido por padrão */
+        }
+
         /*
            PASSO 4: TOTAL INICIAL
         */
@@ -339,6 +354,9 @@
             <span class="header-arrow" style="visibility: hidden;">→</span>
         </header>
 
+        <!-- Botão de Instalar (PWA) -->
+        <button id="install-button">📥 Instalar Aplicativo na Tela</button>
+
         <!-- Seleção de Turno -->
         <div class="shift-toggle">
             <button class="shift-btn active">☀️ Diurno</button>
@@ -442,7 +460,7 @@
                                id="saida-${index}" 
                                class="saida-input" 
                                value="${valorSaida}"
-                               oninput="stampDriver(${index})" 
+                               oninput="stampDriver(${index}); recalcularResto()" 
                                onfocus="stampDriver(${index})"
                                onblur="salvarNoBanco(true, ${index})">
                     </div>
@@ -618,15 +636,25 @@
                 }
 
                 // Se clicou no botão "Salvar" geral, mescla a tela inteira (somente o que tá preenchido):
-                if (!atualizou) {
+                    let totalSimulado = totalInicialTela;
                     let linhasDoBanco = db ? db.linhas : [];
                     for (let i = 0; i < horariosBase.length; i++) {
                         const s = document.getElementById(`saida-${i}`).value;
                         const d = document.getElementById(`driver-${i}`).innerText;
                         
                         if (!linhasDoBanco[i]) linhasDoBanco[i] = { horario: horariosBase[i], resto: null };
+                        
+                        // Atualiza saida e driver se houver algo na tela
                         linhasDoBanco[i].saida = s !== "" ? parseFloat(s) : linhasDoBanco[i].saida;
                         linhasDoBanco[i].driver = d !== "" ? d : linhasDoBanco[i].driver;
+                        
+                        // Calcula e Salva o Resto no objeto que vai pro banco
+                        if (linhasDoBanco[i].saida !== null) {
+                            totalSimulado -= linhasDoBanco[i].saida;
+                            linhasDoBanco[i].resto = totalSimulado;
+                        } else {
+                            linhasDoBanco[i].resto = null;
+                        }
                     }
                     payload.linhas = linhasDoBanco;
                     payload.total_inicial = totalInicialTela;
@@ -642,13 +670,22 @@
             } else {
                 // INSERT MODO (Criando o dia)
                 const linhas = [];
+                let totalSimulado = totalInicialTela;
                 for (let i = 0; i < horariosBase.length; i++) {
                     const saida = document.getElementById(`saida-${i}`).value;
                     const driver = document.getElementById(`driver-${i}`).innerText;
+                    const saidaVal = saida !== "" ? parseFloat(saida) : null;
+                    
+                    let restoVal = null;
+                    if (saidaVal !== null) {
+                        totalSimulado -= saidaVal;
+                        restoVal = totalSimulado;
+                    }
+
                     linhas.push({
                         horario: horariosBase[i],
-                        saida: saida !== "" ? parseFloat(saida) : null,
-                        resto: null,
+                        saida: saidaVal,
+                        resto: restoVal,
                         driver: driver
                     });
                 }
@@ -671,6 +708,26 @@
                 }
                 if (!silencioso) alert("Novo Dia Iniciado!");
             }
+            recalcularResto(); // Recalcula após salvar também
+        }
+
+        // --- NOVO: Função para calcular os saldos (Resto) ---
+        function recalcularResto() {
+            let total = parseFloat(document.getElementById('total-inicial').value) || 0;
+            
+            for (let i = 0; i < horariosBase.length; i++) {
+                const elSaida = document.getElementById(`saida-${i}`);
+                const elResto = document.getElementById(`resto-${i}`);
+                
+                const saidaVal = parseFloat(elSaida.value) || 0;
+                
+                if (elSaida.value !== "") {
+                    total -= saidaVal;
+                    elResto.innerText = total;
+                } else {
+                    elResto.innerText = "";
+                }
+            }
         }
 
         // 10.5 Função silenciosa para não piscar a interface perdendo o Foco da digitação!
@@ -687,6 +744,7 @@
                 elResto.innerText = matrizBD[i].resto !== null ? matrizBD[i].resto : '';
                 elDriver.innerText = matrizBD[i].driver || '';
             }
+            recalcularResto(); // Atualiza os restos após preencher a UI
         }
 
         // Iniciar App IMEDIATAMENTE (mais rápido que window.onload)
@@ -699,6 +757,40 @@
                 .then(reg => console.log('Service Worker registrado!', reg))
                 .catch(err => console.error('Erro ao registrar Service Worker', err));
         }
+
+        // Lógica do botão de instalação PWA
+        let deferredPrompt;
+        const installBtn = document.getElementById('install-button');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Previne o Chrome 67 e anteriores de mostrar o prompt automaticamente
+            e.preventDefault();
+            // Guarda o evento para ser disparado depois
+            deferredPrompt = e;
+            // Mostra o botão de instalação
+            installBtn.style.display = 'block';
+        });
+
+        installBtn.addEventListener('click', (e) => {
+            // Esconde o botão
+            installBtn.style.display = 'none';
+            // Mostra o prompt de instalação
+            deferredPrompt.prompt();
+            // Espera pela resposta do usuário
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('Usuário aceitou a instalação');
+                } else {
+                    console.log('Usuário recusou a instalação');
+                }
+                deferredPrompt = null;
+            });
+        });
+
+        window.addEventListener('appinstalled', (evt) => {
+            console.log('App instalado com sucesso!');
+            installBtn.style.display = 'none';
+        });
     </script>
 </body>
 
