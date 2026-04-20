@@ -62,8 +62,17 @@
         }
 
         /* Container principal simulando a tela de um iPhone 14 Pro Max */
-        #app-container {
-            display: none;          
+        #app-container {    
+            width: 430px;
+            height: 932px;
+            background-color: var(--bg-body);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            border-radius: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+             /* Sombra para dar profundidade */
+          
         }
 
         /* 
@@ -252,7 +261,10 @@
         */
         #login-overlay {
             display: flex;
-            /* ou block, dependendo do seu layout */
+            justify-content: center;
+            /* Centraliza horizontalmente */
+            align-items: center;
+            /* Centraliza verticalmente */
             position: fixed;
             top: 0;
             left: 0;
@@ -260,11 +272,23 @@
             height: 100%;
             z-index: 9999;
             background: #050e1d;
-            /* cor do seu fundo para não piscar branco */
-
-
-
         }
+
+
+        /*    position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-body);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            border-radius: inherit; */
+        
 
         .login-box {
             background-color: var(--bg-panel);
