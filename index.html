@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Controle Diário</title>
+    <!-- Adicionando fonte Inter para um visual moderno -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00d2ff">
+
+
+
+
+
+    <style>
+        /* 
+           PASSO 1: VARIÁVEIS DE CORES 
+           Aqui definimos as cores baseadas no seu screenshot para manter a estética. 
+        */
+        :root {
+            --bg-body: #050e1d;
+            /* Fundo bem escuro */
+            --bg-panel: #0b1a30;
+            /* Fundo dos painéis e áreas */
+            --bg-row-alt: #0d213b;
+            /* Linhas alternadas da tabela */
+            --primary-cyan: #00d2ff;
+            /* Azul claro vivo para botões ativos */
+            --text-light: #ffffff;
+            /* Texto branco */
+            --text-muted: #8ca3c7;
+            /* Texto secundário/apagado */
+            --btn-dark: #142745;
+            /* Botão inativo escuro */
+            --border-color: #1e3a5f;
+            /* Borda suave */
+            --input-border: #008eb3;
+            /* Borda azul do input de saída */
+        }
+
+        /* 
+           PASSO 2: RESET BÁSICO E TIPOGRAFIA
+        */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            /* Evita seleção acidental no touch do celular */
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-light);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* Container principal simulando a tela de um iPhone 14 Pro Max */
+        #app-container {
+            display: none;          
+        }
+
+        /* 
+           PASSO 3: ESTILOS DO CABEÇALHO E TOP BAR
+        */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0 20px 0;
+        }
+
+        .header-arrow {
+            color: var(--primary-cyan);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        h1 {
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        /* Botões Diurno / Noturno */
+        .shift-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .shift-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+        }
+
+        .shift-btn.active {
+            background-color: var(--primary-cyan);
+            color: #000;
+            box-shadow: 0 0 10px rgba(0, 210, 255, 0.3);
+        }
+
+        .shift-btn.inactive {
+            background-color: var(--btn-dark);
+            color: var(--text-muted);
+        }
+
+        /*
+           PASSO 4: TOTAL INICIAL
+        */
+        .total-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .total-input {
+            background-color: var(--btn-dark);
+            border: 1px solid var(--border-color);
+            color: var(--text-light);
+            font-size: 16px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 6px;
+            width: 60px;
+            text-align: center;
+            outline: none;
+        }
+
+        .total-input:focus {
+            border-color: var(--primary-cyan);
+        }
+
+        /*
+           PASSO 5: TABELA DE DADOS
+        */
+        .table-container {
+            background-color: var(--bg-panel);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .table-header,
+        .table-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            text-align: center;
+            align-items: center;
+        }
+
+        .table-header {
+            background-color: var(--bg-panel);
+            padding: 14px 5px;
+            font-size: 16px;
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .table-row {
+            padding: 10px 5px;
+            font-size: 18px;
+        }
+
+        /* Zebrado para as linhas (intercalando as cores igual o screenshot) */
+        .table-row:nth-child(even) {
+            background-color: var(--bg-row-alt);
+            /* Cor mais clara */
+        }
+
+        .table-row:nth-child(odd) {
+            background-color: var(--bg-panel);
+            /* Cor mais escura */
+        }
+
+        .cell-saida input {
+            background-color: transparent;
+            border: 1px solid var(--input-border);
+            border-radius: 6px;
+            color: var(--text-light);
+            text-align: center;
+            width: 80%;
+            padding: 4px;
+            font-size: 20px;
+            outline: none;
+        }
+
+        .cell-saida input:focus {
+            border-color: var(--primary-cyan);
+            box-shadow: 0 0 5px rgba(0, 210, 255, 0.4);
+        }
+
+        .cell-resto {
+            font-weight: 700;
+            color: var(--text-light);
+        }
+
+        /*
+           PASSO 6: BOTÕES INFERIORES
+        */
+        .bottom-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: auto;
+            /* Empurra para o fundo se houver espaço */
+        }
+
+        .action-btn {
+            flex: 1;
+            background-color: var(--btn-dark);
+            color: var(--primary-cyan);
+            border: none;
+            padding: 12px 0;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .action-btn:active {
+            transform: scale(0.95);
+            background-color: var(--border-color);
+        }
+
+        /* 
+           TELA DE LOGIN SOBREPOSTA
+        */
+        #login-overlay {
+            display: flex;
+            /* ou block, dependendo do seu layout */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            background: #050e1d;
+            /* cor do seu fundo para não piscar branco */
+
+
+
+        }
+
+        .login-box {
+            background-color: var(--bg-panel);
+            padding: 30px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 320px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .login-box h2 {
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background-color: var(--btn-dark);
+            color: white;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-cyan);
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- CONTAINER PRINCIPAL DO APP -->
+    <div id="app-container">
+
+        <!-- Tela de Login (Ocultar com a classe "hidden" quando logado) -->
+        <div id="login-overlay">
+            <div class="login-box">
+                <h2>Login</h2>
+                <input type="email" id="email" class="login-input" placeholder="Email" />
+                <input type="password" id="password" class="login-input" placeholder="Senha" />
+                <button class="login-btn" onclick="handleLogin()">Entrar</button>
+            </div>
+        </div>
+
+        <!-- Cabeçalho -->
+        <header>
+            <span class="header-arrow" onclick="fazerLogout()">Sair</span>
+            <h1>Controle Diario</h1>
+            <span class="header-arrow" style="visibility: hidden;">→</span>
+        </header>
+
+        <!-- Seleção de Turno -->
+        <div class="shift-toggle">
+            <button class="shift-btn active">☀️ Diurno</button>
+            <button class="shift-btn inactive">🌙 Noturno</button>
+        </div>
+
+        <!-- Total Inicial -->
+        <div class="total-container">
+            <span>Total Inicial:</span>
+            <input type="number" id="total-inicial" class="total-input" value="44"
+                onblur="salvarNoBanco(true, null, true)">
+        </div>
+
+        <!-- Tabela -->
+        <div class="table-container">
+            <!-- Cabeçalho da Tabela -->
+            <div class="table-header">
+                <div>Horario</div>
+                <div>Saida</div>
+                <div>Resto</div>
+                <div>Driver</div>
+            </div>
+
+            <!-- Corpo da Tabela (10 linhas geradas dinamicamente ou estáticas) -->
+            <div id="table-body">
+                <!-- Vamos gerar isso via Javascript para facilitar o didatismo, 
+                     mas para preview, deixo 3 linhas de exemplo -->
+            </div>
+        </div>
+
+        <!-- Botões de Ação Inferiores -->
+        <div class="bottom-actions">
+            <button class="action-btn" onclick="setDriver()">SetDrv</button>
+            <button class="action-btn" onclick="salvarNoBanco()">Salvar</button>
+            <button class="action-btn" onclick="recarregarDados()">Recarregar</button>
+        </div>
+
+    </div>
+
+    <!-- SUPABASE IMPORT -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+    <!-- LÓGICA DO APP (JAVASCRIPT) -->
+    <script>
+        // --- PASSO 7: CONFIGURAÇÃO SUPABASE ---
+        // 1. Crie um projeto em supabase.com
+        // 2. Vá em Project Settings -> API e copie a URL e a anon_key
+        const SUPABASE_URL = 'https://nqqlbzacqszwmlqkdxji.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWxiemFjcXN6d21scWtkeGppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwMTEwNDUsImV4cCI6MjA5MDU4NzA0NX0.YLiZzYksKxYs3Hpt_i0FNwtmVoCE3Z66WrnTa7vULQ0';
+
+        // Inicializa o cliente Supabase com as chaves acima
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // --- Variáveis de Estado da Aplicação ---
+        let currentDriver = localStorage.getItem('driverName') || '';
+        let currentTurno = 'Diurno'; // Pode ser 'Diurno' ou 'Noturno'
+        let currentRecordId = null; // Guardará o ID do banco de dados para a data atual
+        let loggedInUserId = null; // Guardará o ID do usuário após o login
+
+        // Base de horários conforme seu screenshot
+        const horariosBase = [
+            "5:35", "5:35", "6:05", "6:35", "7:05",
+            "7:15", "7:35", "8:05", "8:35", "9:05"
+        ];
+
+        // Lógica dos Botões de Turno
+        const btnDiurno = document.querySelector('.shift-btn:nth-child(1)');
+        const btnNoturno = document.querySelector('.shift-btn:nth-child(2)');
+
+        btnDiurno.onclick = () => {
+            currentTurno = 'Diurno';
+            btnDiurno.classList.replace('inactive', 'active');
+            btnNoturno.classList.replace('active', 'inactive');
+            recarregarDados(); // Recarrega os dados ao trocar turno
+        };
+
+        btnNoturno.onclick = () => {
+            currentTurno = 'Noturno';
+            btnNoturno.classList.replace('inactive', 'active');
+            btnDiurno.classList.replace('active', 'inactive');
+            recarregarDados(); // Recarrega os dados ao trocar turno
+        };
+
+        // --- PASSO 8: RENDERIZAR A TABELA ---
+        // Função didática para desenhar as 10 linhas no HTML
+        function renderTable(dadosSalvos = null) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = ''; // Limpa antes de desenhar
+
+            horariosBase.forEach((horario, index) => {
+                // Se recebemos dados salvos do Supabase, usamos eles
+                const valorSaida = dadosSalvos && dadosSalvos[index] && dadosSalvos[index].saida ? dadosSalvos[index].saida : '';
+                const valorDriver = dadosSalvos && dadosSalvos[index] && dadosSalvos[index].driver ? dadosSalvos[index].driver : '';
+
+                const row = document.createElement('div');
+                row.className = 'table-row';
+
+                row.innerHTML = `
+                    <div class="cell-horario">${horario}</div>
+                    <div class="cell-saida">
+                        <input type="number" 
+                               id="saida-${index}" 
+                               class="saida-input" 
+                               value="${valorSaida}"
+                               oninput="stampDriver(${index})" 
+                               onfocus="stampDriver(${index})"
+                               onblur="salvarNoBanco(true, ${index})">
+                    </div>
+                    <div class="cell-resto" id="resto-${index}"></div>
+                    <div class="cell-driver" id="driver-${index}">${valorDriver}</div>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Apagado: recalcularResto() que rodava via javascript, pois agora o Supabase fará!
+        }
+
+        // --- PASSO 9: LÓGICA DE NEGÓCIO ---
+
+        // Pega YYYY-MM-DD forçando ABSOLUTAMENTE o fuso horário do Japão (Tokyo) para todos os celulares
+        function getLocalYYYYMMDD() {
+            const formatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 'Asia/Tokyo' });
+            const partes = formatter.format(new Date()).split('/'); // Retorna ["DD", "MM", "YYYY"]
+            return `${partes[2]}-${partes[1]}-${partes[0]}`; // Monta e retorna "YYYY-MM-DD"
+        }
+
+        // 9.1: Motorista Local (LocalStorage)
+        function setDriver() {
+            const driverName = prompt("Digite o nome do Motorista para este celular:", currentDriver);
+            if (driverName !== null && driverName.trim() !== '') {
+                currentDriver = driverName.trim();
+                localStorage.setItem('driverName', currentDriver);
+                alert("Motorista configurado: " + currentDriver);
+            }
+        }
+
+        // 9.2: Carimbar Motorista ao tocar no Input
+        function stampDriver(index) {
+            if (!currentDriver) {
+                alert("Por favor, configure o Motorista clicando em SetDrv primeiro!");
+                return;
+            }
+            // Apenas carimba se o campo estiver vazio, evitando sobrescrever sem querer
+            const driverCell = document.getElementById(`driver-${index}`);
+            if (driverCell.innerText === "") {
+                driverCell.innerText = currentDriver;
+            }
+        }
+
+        // --- PASSO 10: INTEGRAÇÃO REAL SUPABASE ---
+
+        // 10.1 Login Autenticado
+        async function handleLogin() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                alert("Preencha email e senha.");
+                return;
+            }
+
+            try {
+                // Tenta logar no Supabase
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) throw error;
+
+                // Sucesso
+                loggedInUserId = data.user.id; // Guarda o ID do usuário para usar no 'salvar'
+                document.getElementById('login-overlay').classList.add('hidden');
+                recarregarDados(); // Puxa os dados após o login
+
+            } catch (error) {
+                alert("Erro ao logar: " + error.message + "\n\n(Verifique as chaves ou usuário!)");
+            }
+        }
+
+        async function checkSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+
+            if (session) {
+                loggedInUserId = session.user.id;
+                document.getElementById('login-overlay').classList.add('hidden');
+                // Adiciona um log para você rastrear no F12
+                console.log("Usuário autenticado:", session.user.email);
+                recarregarDados();
+            } else {
+                loggedInUserId = null; // Limpa o ID por segurança
+                document.getElementById('login-overlay').classList.remove('hidden');
+                console.log("Nenhuma sessão. Tela de login ativa.");
+            }
+        }
+
+        // 10.2.5 Fazer Logout (Sair)
+        async function fazerLogout() {
+            await supabaseClient.auth.signOut();
+            loggedInUserId = null;
+            document.getElementById('total-inicial').value = '';
+            renderTable();
+            document.getElementById('login-overlay').classList.remove('hidden');
+        }
+
+        // 10.3 Puxar do Supabase
+        async function recarregarDados() {
+            const hoje = getLocalYYYYMMDD();
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('registros_diarios')
+                    .select('*')
+                    .eq('data', hoje)
+                    .eq('turno', currentTurno)
+                    .single();
+
+                if (error && error.code !== 'PGRST116') {
+                    throw error;
+                }
+
+                if (data) {
+                    currentRecordId = data.id;
+                    document.getElementById('total-inicial').value = data.total_inicial;
+
+                    // Atualiza a tela suavemente se ja existir ou forca re-render
+                    if (document.getElementById('table-body').innerHTML === '') {
+                        renderTable(data.linhas);
+                    } else {
+                        atualizarTabelaUI(data.linhas);
+                    }
+                    // alert("Dados do turno " + currentTurno + " recarregados!"); // Silenciado para n incomodar.
+                } else {
+                    currentRecordId = null;
+                    document.getElementById('total-inicial').value = '';
+                    renderTable();
+                }
+
+            } catch (error) {
+                console.error("Erro ao puxar dados: ", error);
+            }
+        }
+
+        // 10.4 Enviar para o banco (Concorrente e delegando Matemática)
+        async function salvarNoBanco(silencioso = false, indexModificado = null, totalModificado = false) {
+            const hoje = getLocalYYYYMMDD();
+            const totalInicialTela = parseFloat(document.getElementById('total-inicial').value) || 0;
+
+            if (currentRecordId) {
+                // MODO UPDATE CONCORRENTE: Puxar do banco instantes antes de atualizar!
+                const { data: db } = await supabaseClient.from('registros_diarios').select('*').eq('id', currentRecordId).single();
+
+                let payload = {};
+                let atualizou = false;
+
+                if (indexModificado !== null && db) {
+                    let linhasDoBanco = db.linhas;
+                    const saidaStr = document.getElementById(`saida-${indexModificado}`).value;
+                    const driverStr = document.getElementById(`driver-${indexModificado}`).innerText;
+
+                    linhasDoBanco[indexModificado].saida = saidaStr !== "" ? parseFloat(saidaStr) : null;
+                    linhasDoBanco[indexModificado].driver = driverStr;
+                    payload.linhas = linhasDoBanco;
+                    atualizou = true;
+                }
+
+                if (totalModificado) {
+                    payload.total_inicial = totalInicialTela;
+                    atualizou = true;
+                }
+
+                // Se clicou no botão "Salvar" geral, mescla a tela inteira (somente o que tá preenchido):
+                if (!atualizou) {
+                    let linhasDoBanco = db ? db.linhas : [];
+                    for (let i = 0; i < horariosBase.length; i++) {
+                        const s = document.getElementById(`saida-${i}`).value;
+                        const d = document.getElementById(`driver-${i}`).innerText;
+
+                        if (!linhasDoBanco[i]) linhasDoBanco[i] = { horario: horariosBase[i], resto: null };
+                        linhasDoBanco[i].saida = s !== "" ? parseFloat(s) : linhasDoBanco[i].saida;
+                        linhasDoBanco[i].driver = d !== "" ? d : linhasDoBanco[i].driver;
+                    }
+                    payload.linhas = linhasDoBanco;
+                    payload.total_inicial = totalInicialTela;
+                }
+
+                const { data, error } = await supabaseClient.from('registros_diarios').update(payload).eq('id', currentRecordId).select();
+                if (error) { if (!silencioso) alert("Erro! " + error.message); return; }
+                if (!silencioso) alert("Dados Atualizados no Banco!");
+
+                // Estampa de volta os Restos calculados pela Função do Supabase!
+                if (data) atualizarTabelaUI(data[0].linhas);
+
+            } else {
+                // INSERT MODO (Criando o dia)
+                const linhas = [];
+                for (let i = 0; i < horariosBase.length; i++) {
+                    const saida = document.getElementById(`saida-${i}`).value;
+                    const driver = document.getElementById(`driver-${i}`).innerText;
+                    linhas.push({
+                        horario: horariosBase[i],
+                        saida: saida !== "" ? parseFloat(saida) : null,
+                        resto: null,
+                        driver: driver
+                    });
+                }
+
+                const payload = {
+                    data: hoje,
+                    turno: currentTurno,
+                    total_inicial: totalInicialTela,
+                    user_id: loggedInUserId,
+                    linhas: linhas
+                };
+
+                const { data, error } = await supabaseClient.from('registros_diarios').insert([payload]).select();
+                if (error) { if (!silencioso) alert("Erro! " + error.message); return; }
+
+                if (data && data.length > 0) {
+                    currentRecordId = data[0].id;
+                    atualizarTabelaUI(data[0].linhas);
+                }
+                if (!silencioso) alert("Novo Dia Iniciado!");
+            }
+        }
+
+        // 10.5 Função silenciosa para não piscar a interface perdendo o Foco da digitação!
+        function atualizarTabelaUI(matrizBD) {
+            for (let i = 0; i < matrizBD.length; i++) {
+                const elSaida = document.getElementById(`saida-${i}`);
+                const elResto = document.getElementById(`resto-${i}`);
+                const elDriver = document.getElementById(`driver-${i}`);
+
+                if (document.activeElement !== elSaida) {
+                    elSaida.value = matrizBD[i].saida !== null ? matrizBD[i].saida : '';
+                }
+
+                elResto.innerText = matrizBD[i].resto !== null ? matrizBD[i].resto : '';
+                elDriver.innerText = matrizBD[i].driver || '';
+            }
+        }
+
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(() => console.log('PWA: Service Worker Ativo'))
+                .catch(err => console.log('PWA: Erro no registro', err));
+        }
+
+
+
+        // Iniciar App (Verificando Sessão)
+        window.onload = () => {
+            // Checa a sessão assim que abrir a página
+            checkSession();
+        };
+
+    </script>
+</body>
+
+</html>

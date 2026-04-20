@@ -1,0 +1,16 @@
+{
+  "name": "Controle Diário Sougey",
+  "short_name": "Controle",
+  "description": "Sistema de escoamento e logística de funcionários",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#050e1d",
+  "theme_color": "#00d2ff",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1554/1554894.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
